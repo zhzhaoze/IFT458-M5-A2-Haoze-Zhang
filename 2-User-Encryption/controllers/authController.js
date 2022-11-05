@@ -1,5 +1,7 @@
 const crypto = require('crypto');
 const User = require('./../models/userModel');
+const bcrypt = require('bcryptjs');
+
 
 exports.signup = async (req, res, next) => {
   const newUser = await User.create({
@@ -30,12 +32,25 @@ exports.login = async (req, res, next) => {
   }
   // 2) Check if user exists && password is correct
   const user = await User.findOne({ email }).select('+password');
-
-  if (!user || !(await user.correctPassword(password, user.password))) {
+  const passwordOK = correctPassword(password, user.password)
+  
+  if (!user || !passwordOK) {
     return next(new AppError('Incorrect email or password', 401));
   }
 
   // 3) If everything ok, send  to client
-  createSend(newUser, 201, res);
+  res.status(201).json({
+    status: 'success',
+    data: {
+      user
+    }
+  });
 };
 
+const correctPassword = async (inputPassword, hashedPassword) => {
+  try {
+      return await bcrypt.compare(inputPassword, hashedPassword);
+  } catch (error) {
+      throw new Error("Comparison failed", error);
+  }
+};
