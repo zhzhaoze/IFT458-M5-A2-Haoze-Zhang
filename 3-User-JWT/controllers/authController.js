@@ -2,6 +2,8 @@ const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const User = require('./../models/userModel');
 const AppError = require('./../utilities/appError');
+const util = require('util');
+require('util.promisify').shim();
 
 const signToken = id => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -91,7 +93,7 @@ exports.protect = async (req, res, next) => {
   }
 
   // 2) Verification token
-  const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+  const decoded = await util.promisify(jwt.verify)(token, process.env.JWT_SECRET);
 
   // 3) Check if user still exists
   const currentUser = await User.findById(decoded.id);
@@ -115,6 +117,14 @@ exports.protect = async (req, res, next) => {
   req.user = currentUser;
   res.locals.user = currentUser;
   next();
+
+  res.status(201).json({
+    status: 'success',
+    token,
+    data: {
+      currentUser
+    }
+  });
 };
 
 // Only for rendered pages, no errors!
